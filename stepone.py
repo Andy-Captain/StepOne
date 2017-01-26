@@ -597,6 +597,7 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
+        # TODO: redo file unzipping protocol to only unzip the needed text file.
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
@@ -685,6 +686,7 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
+        # TODO: redo file unzipping protocol to only unzip the needed text file.
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
