@@ -11,7 +11,7 @@ import zipfile
 S = 'Sample'
 
 __author__ = 'Lukas Jaworski'
-__version__ = '0.6.6'
+__version__ = '0.6.7'
 # TODO: Add a hell of a lot more documentation. Also should I mirror some functions in R?
 # TODO: Make a version with a lot less hand holding and assume the user knows what they're doing (remove setters and
 #       getters) <- Most of this code should be identical in both versions, one will just be intended for less
@@ -104,7 +104,6 @@ class StepOne(object):
         :param dataframe:
         :return:
         """
-        # TODO: Check if pandas methods can work on the internal dataframe inplace.
         try:
             assert isinstance(dataframe, pd.DataFrame)
         except:
@@ -112,18 +111,6 @@ class StepOne(object):
         if dataframe.empty:
             raise Warning('Trying to import an empty dataframe, if you want to delete the current dataframe use del')
         else:
-            column_headings = list(dataframe.columns)
-            i = 0
-            important_headings = self.df_labels[0:3]
-            for heading in column_headings:
-                if heading in important_headings:
-                    i += 1
-            if i < 3:
-                print('Warning, some critical column labels do not match internal callers. Use set_df_labels method or '
-                      'change dataframe labels.\n'
-                      'Internal Callers are: \n'
-                      '[ID: %s] [Detector: %s] [Cq: %s] <- Critical\n'
-                      '[Contamination: %s] <- non Critical' % self.df_labels)
             self.__dataframe = dataframe
 
     @df.deleter
@@ -185,11 +172,11 @@ class StepOne(object):
     def df_labels(self, parameters):
         """
         Set the dataframe labels directly by inputing a tuple-like (gets converted to tuple) object.
-        Order MATTERS and should be ('Sample', 'Detector', 'Cq', 'Contaminated'). Place an empty string if you don't plan on
-        using a label.
+        Order MATTERS and should be ('Sample', 'Detector', 'Cq', 'Contaminated'). Place an empty string if you don't
+        plan on using a label.
 
-        :param parameters: Tuple-like object containing the four labels for ('Sample', 'Detector', 'Cq', 'Contaminated').
-        :return: Internally stores the labels that will be used in the dataframe for these critical parameters.
+        :param parameters: Tuple-like object containing the four labels for ('Sample', 'Detector', 'Cq', 'Contaminated')
+        :return: Internally stores the labels that will be used in the dataframe for these critical parameters
         """
         parameters = tuple(parameters)
         if len(parameters) != 4:
@@ -226,7 +213,7 @@ class StepOne(object):
         so caustion is advised.
 
         :param file_list: List-like object containing strings or a string. All strings must end in .eds
-        :return: internally stores the list of files inside the object.
+        :return: Internally stores the list of files inside the object
         """
         if isinstance(file_list, str):
             file_list = [file_list]
@@ -540,8 +527,6 @@ class StepOne(object):
         idx = pd.IndexSlice
         neg_cont_only = dataframe.loc[idx[neg_cont, :], :]
         no_neg_cont = dataframe.drop(neg_cont, level=0)
-        # neg_cont_only = dataframe.loc[dataframe[labels[0]] == neg_cont, ]
-        # no_neg_cont = dataframe.loc[dataframe[labels[0]] != neg_cont, ]
         if neg_cont_only.empty:
             raise ValueError('No negative controls found!')
         if no_neg_cont.empty:
@@ -550,7 +535,6 @@ class StepOne(object):
             cq_value = list(neg_cont_only.loc[idx[:, gene], labels[2]])
             if cq_value:
                 thresh_breached = cq_value[0] - thresh < 0.0001
-                # print(no_neg_cont.loc[idx[:, gene], labels[2]])
                 diff_thresh = (cq_value[0] - no_neg_cont.loc[idx[:, gene], labels[2]].max(axis=0)) < diff
                 undetected = 40.0 - cq_value[0] < 0.0001
                 if thresh_breached or (diff_thresh and not undetected):
@@ -575,15 +559,14 @@ class StepOne(object):
         return clean, dirty
 
     @staticmethod
-    def scrub_controls(dataframe, controls=['H2O'], column_label='Sample'):
+    def scrub_controls(dataframe, controls='H2O'):
         """
 
         :param dataframe:
         :param controls:
-        :param column_label:
         :return:
         """
-        column_label = str(column_label)
+        idx = pd.IndexSlice
         dirty = pd.DataFrame()
         try:
             assert isinstance(dataframe, pd.DataFrame)
@@ -598,8 +581,8 @@ class StepOne(object):
             except AssertionError:
                 raise TypeError('Controls must be strings!')
             else:
-                dirty = dirty.append(dataframe.loc[dataframe[column_label] == cont])
-                dataframe = dataframe.loc[dataframe[column_label] != cont]
+                dirty = dirty.append(dataframe.loc[idx[controls, :], :])
+                dataframe = dataframe.drop(controls, level=0)
         return dataframe, dirty
 
     def extract_ct_values(self, filename, directory=None, dh='append', f_contam=True,
@@ -614,7 +597,6 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
-        # TODO: Change the dataframe handling to hierarchical indexing
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
@@ -663,7 +645,6 @@ class StepOne(object):
                                                                                  self.df_labels[2]]), ignore_index=True)
                 Workfile.close()
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
-            # print(temp_df)
             i = 0
             while True:  # Lots of times when deleting a file a race condition happens between file being closed and
                 # deleted, so problem solved
@@ -683,7 +664,6 @@ class StepOne(object):
             else:
                 self.__last_file = filename
             if dh is 'append':
-                print(temp_df)
                 self.merge_frames(temp_df)
             elif dh is 'return':
                 return temp_df
@@ -705,7 +685,6 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
-        # TODO: Change to hierarchical indexing solution to add melt temps and build the data.
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
@@ -800,51 +779,29 @@ class StepOne(object):
         """
         Merges dataframes based on ID and Detector.
 
-        :param dataframe:
-        :param controls:
-        :return:
+        :param dataframe: The dataframe that will be merged with the internally stored dataframe.
+        :param controls:   A list like object providing a list of the ID of the control wells.
+        :return: Updates the internal dataframe with the new values.
         """
-        # TODO: Change dataframe functionality to work off of hierarchical indexing.
         if controls is None:
-            controls = self.controls
+            controls = set(self.controls)
         else:
-            controls = controls
+            controls = set(controls)
         try:
             assert isinstance(dataframe, pd.DataFrame)
         except AssertionError:
             raise TypeError('Need a pandas DataFrame.')
         if not self.df.empty:
-            if any(val in set(self.df[self.df_labels[0]][~self.df[self.df_labels[0]].isin(controls)]) for val in
-                   set(dataframe[self.df_labels[0]][~dataframe[self.df_labels[0]].isin(controls)])):
-                print(dataframe)
-                print(self.df)
-                self.df = self.df.update(dataframe)
-                # self.df = self.df.merge(dataframe, how='outer', left_index=True,
-                #                         right_index=True)
-                # temp_df = pd.DataFrame()
-                # for ident in set(self.df[self.df_labels[0]]):
-                #     for detector in set(self.df[self.df_labels[1]]):
-                #         first = self.df.loc[(self.df[self.df_labels[0]] == ident)
-                #                             & (self.df[self.df_labels[1]] == detector), ]
-                #         second = dataframe.loc[(dataframe[self.df_labels[0]] == ident)
-                #                                & (dataframe[self.df_labels[1]] == detector), ]
-                #         result = pd.merge(first, second, sort=False, on=self.df_labels[0:2])
-                #         temp_df = pd.concat((temp_df, result), ignore_index=True)
-                # self.df = temp_df
-
-
-                # self.df.loc[(self.df[self.df_labels[0]] == ident) & (self.df[self.df_labels[1]] == detector), ]\
-                #     = result
-            #     col1 = list(self.df.columns)
-            #     col2 = list(dataframe.columns)
-            #     self.df = pd.merge(self.df[~self.df[self.df_labels[0]].isin(controls)],
-            #                        dataframe[~dataframe[self.df_labels[0]].isin(controls)],
-            #                        on=self.df_labels[0:2], how='outer')
-            #     self.df.columns = col1 + col2
+            if (set(dataframe.index.get_level_values(0)) - controls)\
+                    .intersection(set(self.df.index.get_level_values(0)) - controls):
+                if set(self.df.columns.values).intersection(dataframe.columns.values):
+                    self.df.update(dataframe)
+                else:
+                    self.df = pd.concat([self.df, dataframe], axis=1)
             else:
-                self.df = pd.concat([dataframe, self.df], ignore_index=True)
+                self.df = pd.concat([dataframe, self.df])
         else:
-            self.df = pd.concat([dataframe, self.df], ignore_index=True)
+            self.df = pd.concat([dataframe, self.df])
 
     def _remove_tempfiles(self):
         """
