@@ -8,8 +8,6 @@ import numpy as np
 import shutil
 import zipfile
 
-S = 'Sample'
-
 __author__ = 'Lukas Jaworski'
 __version__ = '0.6.7'
 # TODO: Add a hell of a lot more documentation. Also should I mirror some functions in R?
@@ -32,8 +30,9 @@ class StepOne(object):
     # TODO: Add own exponentional alogrithm. <-This is very optional.
     def __init__(self, working_directory=None):
         """
+        Initializes a bunch of internal variables and gets a working directory in which its functions will be run.
 
-        :param working_directory:
+        :param working_directory: String containing a valid directory.
         """
         self.__directory_attempts = 3
         self.__labels = ('Sample', 'Detector', 'Cq', 'Contaminated')
@@ -62,9 +61,10 @@ class StepOne(object):
     @dir.setter
     def dir(self, directory):
         """
+        Takes a string and uses it as the path to the current working directory.
 
         :param directory: String containing a valid directory.
-        :return:
+        :return: Internally set working directory to input path.
         """
         try:
             assert isinstance(directory, str)
@@ -78,10 +78,11 @@ class StepOne(object):
     @dir.deleter
     def dir(self):
         """
+        Sets the directory to a slash (root directory)
 
-        :return:
+        :return: Internally sets directory path to root.
         """
-        self.__directory = os.path.abspath(os.sep)  # TODO: Figure out what this does and why it was done this way
+        self.__directory = os.path.abspath(os.sep)
 
     @property
     def df(self):
@@ -101,8 +102,8 @@ class StepOne(object):
         be changed using the set_df_labels method. Conversely the dataframe is still a pandas object and all panads
         functions will work on it, the resulting dataframe may need to be imported.
 
-        :param dataframe:
-        :return:
+        :param dataframe: Import a Pandas Dataframe into the StepOne object.
+        :return: Internally store input Dataframe.
         """
         try:
             assert isinstance(dataframe, pd.DataFrame)
@@ -118,7 +119,7 @@ class StepOne(object):
         """
         The deleter simple sets the dataframe to an empty dataframe.
 
-        :return:
+        :return: Set internal Dataframe to the empty Dataframe.
         """
         self.__dataframe = pd.DataFrame()
 
@@ -127,7 +128,7 @@ class StepOne(object):
         """
         Returns the current list of controls.
 
-        :return:
+        :return: List of current controls.
         """
         return self.__controls
 
@@ -138,8 +139,8 @@ class StepOne(object):
         The list of controls is used by the scrub controls method to remove the controls from the dataframe as there is
         no interest in analyzing them.
 
-        :param controls:
-        :return:
+        :param controls: A list-like object containing the IDs(Names) of the controls in the plate
+        :return: Store the list of controls internally.
         """
         if isinstance(controls, str):
             controls = [controls]
@@ -158,7 +159,7 @@ class StepOne(object):
         """
         The deleter sets the controls list to the default of a single string list of 'H2O'.
 
-        :return:
+        :return: Internally set the controls to ['H2O'].
         """
         self.__controls = ['H2O']
 
@@ -166,6 +167,11 @@ class StepOne(object):
     #  and pass it as a default parameter
     @property
     def df_labels(self):
+        """
+        The labels used in the Pandas' dataframe object which is stored within this object.
+
+        :return: Dataframe labels
+        """
         return self.__labels
 
     @df_labels.setter
@@ -191,16 +197,18 @@ class StepOne(object):
     @df_labels.deleter
     def df_labels(self):
         """
+        The deleter resets the major data labels to their default values.
 
-        :return:
+        :return: Internally stored labels are set to ('Sample', 'Detector', 'Cq', 'Contaminated').
         """
         self.__labels = ('Sample', 'Detector', 'Cq', 'Contaminated')
 
     @property
     def eds_files(self):
         """
+        Displays the internally stored .eds file list. This list is the list of files that this object works on.
 
-        :return:
+        :return: Internally stored .eds file list.
         """
         return self.__file_list
 
@@ -235,7 +243,7 @@ class StepOne(object):
         """
         The deleter sets the internal file list variable to the empty list.
 
-        :return:
+        :return: Internal file list becomes the empty list.
         """
         self.__file_list = []
 
@@ -244,7 +252,7 @@ class StepOne(object):
         """
         Returns the last file that was processed by the object.
 
-        :return:
+        :return: String containing the last file that this object processed.
         """
         return self.__lastfile
 
@@ -253,8 +261,8 @@ class StepOne(object):
         """
         Stores the last file processed. This is for checking file endings and for error logging.
 
-        :param filename: String containing a filename with a .eds ending
-        :return: internally stores the name in a lastfile variable
+        :param filename: String containing a filename with a .eds ending.
+        :return: Internally stores the name in a lastfile variable.
         """
         filename = str(filename)
         filename = filename.strip()
@@ -266,6 +274,7 @@ class StepOne(object):
     @__last_file.deleter
     def __last_file(self):
         """
+        Gets rid of the name of the last file that was processed and sets it to the empty string.
 
         :return: sets the internal lastfile variable to the empty string.
         """
@@ -274,17 +283,22 @@ class StepOne(object):
     @property
     def sample_ids_file(self):
         """
+        Returns the name of the file that is used convert from sample ids to full experimental parameters.
+        This is done because the StepOne has limited space for sample ids which would not allow all experimental
+        groupings to be displayed. This is the file used to fill in that information. This file is completely optional.
+        The program assumes this file is in the working directory.
 
-        :return:
+        :return: Internal name of sample id file.
         """
         return self.__sample_id_filename
 
     @sample_ids_file.setter
     def sample_ids_file(self, filename):
         """
+        Sets the name of the file used to convert sample ids to experimental parameters.
 
-        :param filename:
-        :return:
+        :param filename: String containing the filename of the sample ids to parameters file.
+        :return: Internally store filename as a string.
         """
         try:
             assert isinstance(filename, str)
@@ -298,16 +312,19 @@ class StepOne(object):
     @sample_ids_file.deleter
     def sample_ids_file(self):
         """
+        Sets the sample id filename to the default of 'sampleids.csv'
 
-        :return:
+        :return: Set internal sample id filename variable to 'sampleids.csv
         """
         self.__sample_id_filename = 'sampleids.csv'
 
+    # TODO: Delete this if individual textfiles can be extracted.
     @property
     def temp(self):
         """
+        Returns the name of the subdirectory where the extracted files are placed.
 
-        :return:
+        :return: String containing subdirectory name.
         """
         return self.__temp
 
@@ -317,7 +334,7 @@ class StepOne(object):
         Set the name of the subdirectory in which the extracted files will be placed.
 
         :param subdirectory: String with name of subdirectory, no preceding slash.
-        :return:
+        :return: Internally stores string containing subdirectory name.
         """
         try:
             assert isinstance(subdirectory, str)
@@ -329,30 +346,31 @@ class StepOne(object):
     @temp.deleter
     def temp(self):
         """
+        Sets the subdirectory name to the default of 'temp'
 
-        :return:
+        :return: Internallys sets subdirectory folder name to 'temp'
         """
         self.__temp = 'temp'
 
     @property
     def sample_ids(self):
         """
+        A dictionary containing the sample ids as the keys and the experimental parameters as the values. These values
+        should later be used in filtering the samples for statistical analysis.
 
-        :return:
+        :return: Dictionary containing the sample ids as the keys and the experimental parameters as the values.
         """
         return self.__sample_ids
 
     @sample_ids.setter
     def sample_ids(self, ids):
         """
-        Needs a dictionary-like with ID(key):sample parameters(value)<-should be string with sample parameters being
-                                                                       separated by a consistent sep
-
         Uses this dictionary to add sample parameters using the simplified id numbers/names/values used to in creating
         the runfile and adding all of the experimental parameters of interest, uses the builtin
 
-        :param ids:
-        :return:
+        :param ids: Dictionary-like with ID(key):sample parameters(value)<-should be string with sample parameters being
+                                                                           separated by a consistent separator.
+        :return: Internally store sample id dictionary.
         """
         self.__sample_ids = dict(ids)
 
@@ -360,7 +378,7 @@ class StepOne(object):
     def sample_ids(self):
         """
 
-        :return:
+        :return: Internally sets the sample id dictionary to the empty dictionary.
         """
         self.__sample_ids = {}
 
@@ -371,11 +389,11 @@ class StepOne(object):
         contamination is is the label for if the sample is found to be contaminated using the flag_contamination
         method. DEFAULT LABELS:('Sample', 'Detector', 'Cq', 'Contaminated')
 
-        :param detector:
-        :param identifier:
-        :param cq:
-        :param contamination:
-        :return:
+        :param detector: String containing the dataframe label for the Detectors/Genes of interest.
+        :param identifier: String containing the dataframe label for the sample ids/names of the experiment.
+        :param cq: String containing the dataframe label for the Cq/Ct values for the experiment.
+        :param contamination: String containing the dataframe label indicating whether the sample was contaminated.
+        :return: Internally set the dataframe labels.
         """
         if detector is not None:
             try:
@@ -417,8 +435,8 @@ class StepOne(object):
         directory can be set manually using a string containing the directory. The directory can also be manually set by
         simply setting the <StepOne>.dir to the desired path (i.e. myStepOne.dir = 'C:/Users/Guest/Python')
 
-        :param directory:
-        :return:
+        :param directory: String containing a valid directory.
+        :return: Internally sets path of working directory.
         """
         self.__directory_attempts -= 1
         if not self.__directory_attempts:
@@ -441,7 +459,7 @@ class StepOne(object):
         question needs to be a csv with the sample IDs in the first column and the description parameters in the second.
 
         :param sample_id_filename: filename (as a string) DEFAULT: 'sampleids.csv'
-        :return:
+        :return: Internally set filename.
         """
         if sample_id_filename is None:
             sample_id_filename = self.sample_ids_file
@@ -460,8 +478,9 @@ class StepOne(object):
         """
         Makes a list of all of the files with the .eds ending in the current directory
 
-        :param directory: String containing a directory
-        :return:
+        :param directory: String containing a directory.
+        :return: Internally store a list of strings containing the names of all the .eds files in directory.
+                 It uses the internally stored working directory if none is provided.
         """
         if directory is None:
             directory = self.dir
@@ -482,23 +501,21 @@ class StepOne(object):
                                                                                                       'Contaminated')):
         """
         This method is used to flag contamination in the PCR by flagging the samples in which the negative control
-        showed amplification. This method needs to be called ONE pcr plate at a time (one plate per input dataframe).
-        neg_cont needs a string containing the sample name of the negative control.
-        gene_list is a list-like object which contains the list of genes which you want to flag, if set to None it will
-        simply pull all the unique names found in the dataframe's Detector column.
-        thresh is the threshold value (Cq value) below which the negative control control is considered contaminated.
-        diff is the closest (in terms of Cq value) a non negative control sample can get to a negative control which is
-        above thresh but below 40
-        labels is a quartet (four string) tuple which holds the dataframe column labels for the (Detector/Gene,
-        Sample Name, Cq, is contaminated) respectively, these need to be set correctly or this method won't run.
+        showed amplification. This method needs to be called ONCE pcr plate at a time (one plate per input dataframe)
+        otherwise controls from other plates may faux contaminate the current data.
 
-        :param dataframe:
-        :param neg_cont:
-        :param gene_list:
-        :param thresh:
-        :param diff:
-        :param labels:
-        :return:
+        :param dataframe: A Pandas dataframe
+        :param neg_cont: String containing the sample name of the negative control.
+        :param gene_list: List-like object which contains the list of genes which you want to flag, if set to None it
+                          will simply pull all the unique names found in the dataframe's Detector column.
+        :param thresh: Float containing the threshold value (Cq value) below which the negative control is considered
+                       contaminated.
+        :param diff: Float which is closest (in terms of Cq value) a non negative control sample can get to a negative
+                     control which is above thresh but below 40
+        :param labels: Quartet (four string) tuple which holds the dataframe column labels for the (Detector/Gene,
+                       Sample Name, Cq, is contaminated) respectively, these need to be set correctly or this method
+                       won't run.
+        :return: Dataframe with a column indicating whether the sample was contaminated.
         """
         try:
             assert isinstance(dataframe, pd.DataFrame)
@@ -597,7 +614,7 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
-        # TODO: redo file unzipping protocol to only unzip the needed text file.
+
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
@@ -623,7 +640,7 @@ class StepOne(object):
             cp2 = float(contam_params[1])
             cp3 = float(contam_params[2])
             contam_params = (cp1, cp2, cp3)
-
+        # TODO: redo file unzipping protocol to only unzip the needed text file.
         if linked_operation[0]:
             self.unzip_file(directory, filename, self.temp)
         else:
@@ -645,6 +662,8 @@ class StepOne(object):
                             temp_df = temp_df.append(pd.DataFrame(data, columns=[self.df_labels[0], self.df_labels[1],
                                                                                  self.df_labels[2]]), ignore_index=True)
                 Workfile.close()
+
+            # END TODO##
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
             i = 0
             while True:  # Lots of times when deleting a file a race condition happens between file being closed and
@@ -686,7 +705,7 @@ class StepOne(object):
         :param linked_operation:
         :return:
         """
-        # TODO: redo file unzipping protocol to only unzip the needed text file.
+
         temp_df = pd.DataFrame()
         dh_options = ('append', 'return', 'replace')
         try:
@@ -710,6 +729,7 @@ class StepOne(object):
             assert isinstance(f_mult_tm, bool)
         except AssertionError:
             raise TypeError('f_mult_tm must be a bool.')
+        # TODO: redo file unzipping protocol to only unzip the needed text file.
         if linked_operation[0]:
             self.unzip_file(directory, filename, self.temp)
         else:
@@ -747,6 +767,8 @@ class StepOne(object):
                                 temp_df.loc[(temp_df[self.df_labels[0]] == data_id[0][0]) &
                                             (temp_df[self.df_labels[1]] == data_id[0][1]), melt_header] = temp
                 Workfile.close()
+
+            # END TODO##
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
             i = 0
             while True:  # Lots of times when deleting a file a race condition happens between file being closed and
