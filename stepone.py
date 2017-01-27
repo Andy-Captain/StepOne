@@ -567,14 +567,12 @@ class StepOne(object):
                 dataframe = dataframe.drop(controls, level=0)
         return dataframe, dirty
 
-    def extract_ct_values(self, filename, directory=None, dh='append', f_contam=True,
-                          contam_params=('H2O', 37.0, 10.0)):
+    def extract_ct_values(self, filename, directory=None, dh='append', contam_params=('H2O', 37.0, 10.0)):
         """
 
         :param filename:
         :param directory:
         :param dh:
-        :param f_contam:
         :param contam_params:
         :return:
         """
@@ -587,7 +585,6 @@ class StepOne(object):
             raise TypeError('Need a string keyword.')
         if dh not in dh_options:
             raise ValueError('Not a valid dh selection, options are: "append", "replace", "return"')
-        resultfile_subdirectory = '/apldbio/sds/analysis_result.txt'
         if directory is None:
             directory = self.dir
         else:
@@ -598,8 +595,7 @@ class StepOne(object):
             raise TypeError('Need a string to a directory.')
         if not os.path.isdir(directory):
             raise NotADirectoryError('%s is not a valid directory' % directory)
-        assert isinstance(f_contam, bool)
-        if f_contam is True:
+        if contam_params:
             cp1 = str(contam_params[0])
             cp2 = float(contam_params[1])
             cp3 = float(contam_params[2])
@@ -627,7 +623,7 @@ class StepOne(object):
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
             if temp_df.empty:
                 raise Exception('No data found! Choose a different file...')
-            if f_contam:
+            if contam_params:
                 temp_df = self.flag_contamination(temp_df, neg_cont=contam_params[0], thresh=contam_params[1],
                                                   diff=contam_params[2], labels=self.df_labels)
             else:
