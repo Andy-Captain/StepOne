@@ -6,7 +6,7 @@ import re
 import pandas as pd
 import numpy as np
 import shutil
-import zipfile
+import zipfile as zip
 
 __author__ = 'Lukas Jaworski'
 __version__ = '0.6.7'
@@ -598,12 +598,12 @@ class StepOne(object):
             except AssertionError:
                 raise TypeError('Controls must be strings!')
             else:
-                dirty = dirty.append(dataframe.loc[idx[controls, :], :])
+                dirty = dirty.append(dataframe.sort_index().loc[idx[controls, :], :])
                 dataframe = dataframe.drop(controls, level=0)
         return dataframe, dirty
 
     def extract_ct_values(self, filename, directory=None, dh='append', f_contam=True,
-                          contam_params=('H2O', 37.0, 10.0), linked_operation=(True, True)):
+                          contam_params=('H2O', 37.0, 10.0)):
         """
 
         :param filename:
@@ -611,7 +611,6 @@ class StepOne(object):
         :param dh:
         :param f_contam:
         :param contam_params:
-        :param linked_operation:
         :return:
         """
 
@@ -640,47 +639,32 @@ class StepOne(object):
             cp2 = float(contam_params[1])
             cp3 = float(contam_params[2])
             contam_params = (cp1, cp2, cp3)
-        # TODO: redo file unzipping protocol to only unzip the needed text file.
-        if linked_operation[0]:
-            self.unzip_file(directory, filename, self.temp)
-        else:
-            if filename != self.__last_file:
-                raise ValueError('You are trying to link unassociated files!')
         try:
-            with open(directory + '/' + self.temp + resultfile_subdirectory, 'r') as Workfile:
-                for each_line in Workfile:
-                    each_line_parts = each_line.split('\t')
-                    try:
-                        int(each_line_parts[0])
-                    except ValueError:
-                        continue
-                    else:
-                        if 0 <= int(each_line_parts[0]) <= 383:
-                            data = [[each_line_parts[1].strip().replace(' ', '_'),
-                                     each_line_parts[2].strip().replace(' ', '_'),
-                                     float(each_line_parts[4])]]
-                            temp_df = temp_df.append(pd.DataFrame(data, columns=[self.df_labels[0], self.df_labels[1],
-                                                                                 self.df_labels[2]]), ignore_index=True)
-                Workfile.close()
-
-            # END TODO##
+            with zip.ZipFile(directory + '/' + filename) as edsfile:
+                with edsfile.open('apldbio/sds/analysis_result.txt') as Workfile:
+                    for each_line in Workfile:
+                        each_line_parts = each_line.decode('utf-8').split('\t')
+                        try:
+                            int(each_line_parts[0])
+                        except ValueError:
+                            continue
+                        else:
+                            if 0 <= int(each_line_parts[0]) <= 383:
+                                data = [[each_line_parts[1].strip().replace(' ', '_'),
+                                         each_line_parts[2].strip().replace(' ', '_'),
+                                         float(each_line_parts[4])]]
+                                temp_df = temp_df.append(pd.DataFrame(data, columns=[self.df_labels[0],
+                                                                                     self.df_labels[1],
+                                                                                     self.df_labels[2]]),
+                                                         ignore_index=True)
+                    Workfile.close()
+                edsfile.close()
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
-            i = 0
-            while True:  # Lots of times when deleting a file a race condition happens between file being closed and
-                # deleted, so problem solved
-                i += 1
-                if Workfile.closed:
-                    break
-                if i > 10000:
-                    raise TimeoutError('File not closing.')
             if temp_df.empty:
                 raise Exception('No data found! Choose a different file...')
             if f_contam:
                 temp_df = self.flag_contamination(temp_df, neg_cont=contam_params[0], thresh=contam_params[1],
                                                   diff=contam_params[2], labels=self.df_labels)
-            if linked_operation[1]:
-                self._remove_tempfiles()
-                del self.__last_file
             else:
                 self.__last_file = filename
             if dh is 'append':
@@ -693,16 +677,15 @@ class StepOne(object):
                 raise Exception('Not an acceptable selection')
         except FileNotFoundError:
             print(filename)
-            print('This file does not have any data, going to the next one...')
+            print("This file doesn't exist!")
 
-    def add_melt_temps(self, filename, directory=None, dh='append', f_mult_tm=True, linked_operation=(True, True)):
+    def add_melt_temps(self, filename, directory=None, dh='append', f_mult_tm=True):
         """
 
         :param filename:
         :param directory:
         :param dh:
         :param f_mult_tm:
-        :param linked_operation:
         :return:
         """
 
@@ -714,7 +697,6 @@ class StepOne(object):
             raise TypeError('Need a string keyword.')
         if dh not in dh_options:
             raise ValueError('Not a valid dh selection, options are: "append", "replace", "return"')
-        resultfile_subdirectory = '/apldbio/sds/meltcuve_result.txt'
         if directory is None:
             directory = self.dir
         else:
@@ -729,62 +711,45 @@ class StepOne(object):
             assert isinstance(f_mult_tm, bool)
         except AssertionError:
             raise TypeError('f_mult_tm must be a bool.')
-        # TODO: redo file unzipping protocol to only unzip the needed text file.
-        if linked_operation[0]:
-            self.unzip_file(directory, filename, self.temp)
-        else:
-            if filename != self.__last_file:
-                raise ValueError('You are trying to link unassociated files!')
         try:
-            with open(directory + '/' + self.temp + resultfile_subdirectory, 'r') as Workfile:
-                for each_line in Workfile:
-                    each_line_parts = each_line.split('\t')
-                    try:
-                        int(each_line_parts[0])
-                    except ValueError:
-                        continue
-                    else:
+            with zip.ZipFile(directory + '/' + filename) as edsfile:
+                with edsfile.open('apldbio/sds/meltcuve_result.txt') as Workfile:
+                    for each_line in Workfile:
+                        each_line_parts = each_line.decode('utf-8').split('\t')
                         try:
-                            float(each_line_parts[4])
+                            int(each_line_parts[0])
                         except ValueError:
-                            melt_temps = each_line_parts[4].split(',')
-                            melt_temps = [float(temp.strip()) for temp in melt_temps if temp is not '\n']
+                            continue
                         else:
-                            if each_line_parts[4] is '\n':
-                                continue
-                            melt_temps = [float(each_line_parts[4])]
-                        if 0 <= int(each_line_parts[0]) <= 383:
-                            data_id = [[each_line_parts[1].strip().replace(' ', '_'),
-                                        each_line_parts[2].strip().replace(' ', '_')]]
+                            try:
+                                float(each_line_parts[4])
+                            except ValueError:
+                                melt_temps = each_line_parts[4].split(',')
+                                melt_temps = [float(temp.strip()) for temp in melt_temps if temp.strip()]
+                            else:
+                                if each_line_parts[4] is '\n':
+                                    continue
+                                melt_temps = [float(each_line_parts[4])]
+                            if 0 <= int(each_line_parts[0]) <= 383:
+                                data_id = [[each_line_parts[1].strip().replace(' ', '_'),
+                                            each_line_parts[2].strip().replace(' ', '_')]]
 
-                            temp_df = temp_df.append(pd.DataFrame(data_id, columns=[self.df_labels[0],
-                                                                                    self.df_labels[1]]),
-                                                     ignore_index=True)
-                            for index, temp in enumerate(melt_temps, start=1):
-                                melt_header = 'Melt_Temp_' + str(index)
-                                if melt_header not in temp_df.columns:
-                                    temp_df[melt_header] = np.nan
-                                temp_df.loc[(temp_df[self.df_labels[0]] == data_id[0][0]) &
-                                            (temp_df[self.df_labels[1]] == data_id[0][1]), melt_header] = temp
-                Workfile.close()
-
-            # END TODO##
+                                temp_df = temp_df.append(pd.DataFrame(data_id, columns=[self.df_labels[0],
+                                                                                        self.df_labels[1]]),
+                                                         ignore_index=True)
+                                for index, temp in enumerate(melt_temps, start=1):
+                                    melt_header = 'Melt_Temp_' + str(index)
+                                    if melt_header not in temp_df.columns:
+                                        temp_df[melt_header] = np.nan
+                                    temp_df.loc[(temp_df[self.df_labels[0]] == data_id[0][0]) &
+                                                (temp_df[self.df_labels[1]] == data_id[0][1]), melt_header] = temp
+                    Workfile.close()
+                edsfile.close()
             temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
-            i = 0
-            while True:  # Lots of times when deleting a file a race condition happens between file being closed and
-                # deleted, so problem solved
-                i += 1
-                if Workfile.closed:
-                    break
-                if i > 10000:
-                    raise TimeoutError('File not closing.')
             if temp_df.empty:
                 raise Exception('No data found! Choose a different file...')
             if f_mult_tm:
                 pass
-            if linked_operation[1]:
-                self._remove_tempfiles()
-                del self.__last_file
             else:
                 self.__last_file = filename
             if dh is 'append':
@@ -860,6 +825,6 @@ class StepOne(object):
         if not os.path.isdir(directory):
             raise Exception('Not a valid directory')
         assert isinstance(unzip_folder, str)
-        zip_ref = zipfile.ZipFile(directory + '/' + filename, 'r')  # read when doing actual files
+        zip_ref = zip.ZipFile(directory + '/' + filename, 'r')  # read when doing actual files
         zip_ref.extractall(directory + '/' + unzip_folder)
         zip_ref.close()
