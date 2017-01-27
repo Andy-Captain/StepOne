@@ -40,7 +40,6 @@ class StepOne(object):
         self.__file_list = []
         self.__dataframe = pd.DataFrame()
         self.__sample_ids = {}
-        self.__temp = 'temp'
         self.__sample_id_filename = 'sampleids.csv'
         self.__controls = ['H2O']
         self.__lastfile = ''
@@ -317,40 +316,6 @@ class StepOne(object):
         :return: Set internal sample id filename variable to 'sampleids.csv
         """
         self.__sample_id_filename = 'sampleids.csv'
-
-    # TODO: Delete this if individual textfiles can be extracted.
-    @property
-    def temp(self):
-        """
-        Returns the name of the subdirectory where the extracted files are placed.
-
-        :return: String containing subdirectory name.
-        """
-        return self.__temp
-
-    @temp.setter
-    def temp(self, subdirectory):
-        """
-        Set the name of the subdirectory in which the extracted files will be placed.
-
-        :param subdirectory: String with name of subdirectory, no preceding slash.
-        :return: Internally stores string containing subdirectory name.
-        """
-        try:
-            assert isinstance(subdirectory, str)
-        except AssertionError:
-            raise TypeError('Needs a string subdirectory path (no preceding slash).')
-        subdirectory = subdirectory.strip().lstrip(os.sep)
-        self.__temp = subdirectory
-
-    @temp.deleter
-    def temp(self):
-        """
-        Sets the subdirectory name to the default of 'temp'
-
-        :return: Internallys sets subdirectory folder name to 'temp'
-        """
-        self.__temp = 'temp'
 
     @property
     def sample_ids(self):
@@ -791,21 +756,6 @@ class StepOne(object):
                 self.df = pd.concat([dataframe, self.df])
         else:
             self.df = pd.concat([dataframe, self.df])
-
-    def _remove_tempfiles(self):
-        """
-
-        :return:
-        """
-        iterations = 0
-        while True:  # I had to add this because the virus scanner kept it from being removed otherwise without an error
-            try:
-                shutil.rmtree(self.dir + '/' + self.temp)
-                break
-            except WindowsError:
-                if iterations > 10000:  # any longer than this, then the problem is more than just the virus scanner
-                    raise
-                iterations += 1
 
     @staticmethod
     def unzip_file(directory, filename, unzip_folder):
