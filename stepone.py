@@ -23,10 +23,6 @@ class StepOne(object):
     It works with the scientific computing environment in Python and is helpful if you have Anaconda installed as there
     are many libraries that are required to run this class.
     """
-    # TODO: Add method that pulls from multicomponent data and the meltcurve to generate your own meltcurves.
-    #       This can be done because the cycles 0-39 hold the amplification data and the rest holds the melt curve data
-    #       The meltcurve_results holds the temperatures while the multicompenent_data holds the raw floresence values.
-    #       The raw florescence values have no scale or units and are referenced to the ROX. <- optional.
     # TODO: Add own exponentional alogrithm. <-This is very optional.
     def __init__(self, working_directory=None):
         """
@@ -567,7 +563,7 @@ class StepOne(object):
                 dataframe = dataframe.drop(controls, level=0)
         return dataframe, dirty
 
-    def extract_ct_values(self, filename, directory=None, dh='append', contam_params=('H2O', 37.0, 10.0)):
+    def extract_cq_values(self, filename, directory=None, dh='append', contam_params=('H2O', 37.0, 10.0)):
         """
 
         :param filename:
@@ -724,6 +720,68 @@ class StepOne(object):
         except FileNotFoundError:
             print(filename)
             print('This file does not have any data, going to the next one...')
+
+    def extract_multicomponent(self, filename, directory=None, dh='append'):
+        """
+
+        :param filename:
+        :param directory:
+        :param dh:
+        :param contam_params:
+        :return:
+        """
+        # TODO: Add method that pulls from multicomponent data and the meltcurve to generate your own meltcurves.
+        #       This can be done because the cycles 0-39 hold the amplification data and the rest holds the melt curve
+        #       dataThe meltcurve_results holds the temperatures while the multicompenent_data holds the raw florescence
+        #       values.
+        #       The raw florescence values have no scale or units and are referenced to the ROX. <- optional.
+        temp_df = pd.DataFrame()
+        dh_options = ('append', 'return', 'replace')
+        try:
+            assert isinstance(dh, str)
+        except AssertionError:
+            raise TypeError('Need a string keyword.')
+        if dh not in dh_options:
+            raise ValueError('Not a valid dh selection, options are: "append", "replace", "return"')
+        if directory is None:
+            directory = self.dir
+        else:
+            directory = directory
+        try:
+            assert isinstance(directory, str)
+        except AssertionError:
+            raise TypeError('Need a string to a directory.')
+        if not os.path.isdir(directory):
+            raise NotADirectoryError('%s is not a valid directory' % directory)
+        try:
+            with zip.ZipFile(directory + '/' + filename) as edsfile:
+                with edsfile.open('apldbio/sds/multicomponent_data.txt') as Workfile:
+                    for each_line in Workfile:
+                        each_line_parts = each_line.decode('utf-8').split('\t')
+                        try:
+                            int(each_line_parts[0])
+                        except ValueError:
+                            continue
+                        else:
+                            print(each_line_parts)
+                    Workfile.close()
+                edsfile.close()
+        #     temp_df.set_index(list(self.df_labels[0:2]), inplace=True)
+        #     if temp_df.empty:
+        #         raise Exception('No data found! Choose a different file...')
+        #     else:
+        #         self.__last_file = filename
+        #     if dh is 'append':
+        #         self.merge_frames(temp_df)
+        #     elif dh is 'return':
+        #         return temp_df
+        #     elif dh is 'replace':
+        #         self.df = temp_df
+        #     else:
+        #         raise Exception('Not an acceptable selection')
+        except FileNotFoundError:
+            print(filename)
+            print("This file doesn't exist!")
 
     def merge_frames(self, dataframe, controls=None):
         """
