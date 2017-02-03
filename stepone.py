@@ -803,11 +803,17 @@ class StepOne(object):
             assert isinstance(dataframe, pd.DataFrame)
         except AssertionError:
             raise TypeError('Need a pandas DataFrame.')
+        idx = pd.IndexSlice
         if not self.df.empty:
             if (set(dataframe.index.get_level_values(0)) - controls)\
                     .intersection(set(self.df.index.get_level_values(0)) - controls):
                 if set(self.df.columns.values).intersection(dataframe.columns.values):
                     self.df.update(dataframe)
+                    if set(dataframe.index.get_level_values(0)).difference(set(self.df.index.get_level_values(0))):
+                        remaining_data = dataframe.loc[idx[set(dataframe.index.get_level_values(0))
+                                                           .difference(set(self.df.index.get_level_values(0))), :], :]
+                        print(remaining_data)
+                        self.df = pd.concat([self.df, remaining_data])
                 else:
                     self.df = pd.concat([self.df, dataframe], axis=1)
             else:

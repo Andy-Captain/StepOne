@@ -19,6 +19,7 @@ a,b = x.df.index.levels
 for id_num in a:
     x.df.loc[idx[id_num, :], 'SampleName'] = x.sample_ids[id_num]
 file_want = x.df[['Cq', 'SampleName']]
+x.df.to_excel(x.dir+'/debug.xlsx')
 file_want.to_csv(x.dir+'/pcrfile.txt', sep='\t', na_rep='40.0')
 # repeats[['Detector', 'ID']].to_excel(x.dir+'/repeats.xlsx')
 
