@@ -635,6 +635,8 @@ class StepOne(object):
         except FileNotFoundError:
             print(filename)
             print("This file doesn't exist!")
+        except KeyError:
+            print('No data in %s' % filename)
 
     def add_melt_temps(self, filename, directory=None, dh='append', f_mult_tm=True):
         """
@@ -720,6 +722,8 @@ class StepOne(object):
         except FileNotFoundError:
             print(filename)
             print('This file does not have any data, going to the next one...')
+        except KeyError:
+            print('No data in %s' % filename)
 
     def extract_multicomponent(self, filename, directory=None, dh='append'):
         """
