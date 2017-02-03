@@ -633,8 +633,7 @@ class StepOne(object):
             else:
                 raise Exception('Not an acceptable selection')
         except FileNotFoundError:
-            print(filename)
-            print("This file doesn't exist!")
+            print('%s does not have any data, going to the next one...' % filename)
         except KeyError:
             print('No data in %s' % filename)
 
@@ -720,8 +719,7 @@ class StepOne(object):
             else:
                 raise Exception('Not an acceptable selection')
         except FileNotFoundError:
-            print(filename)
-            print('This file does not have any data, going to the next one...')
+            print('%s does not have any data, going to the next one...' % filename)
         except KeyError:
             print('No data in %s' % filename)
 
@@ -731,7 +729,6 @@ class StepOne(object):
         :param filename:
         :param directory:
         :param dh:
-        :param contam_params:
         :return:
         """
         # TODO: Add method that pulls from multicomponent data and the meltcurve to generate your own meltcurves.
@@ -784,8 +781,7 @@ class StepOne(object):
         #     else:
         #         raise Exception('Not an acceptable selection')
         except FileNotFoundError:
-            print(filename)
-            print("This file doesn't exist!")
+            print('%s does not have any data, going to the next one...' % filename)
 
     def merge_frames(self, dataframe, controls=None):
         """
@@ -812,7 +808,6 @@ class StepOne(object):
                     if set(dataframe.index.get_level_values(0)).difference(set(self.df.index.get_level_values(0))):
                         remaining_data = dataframe.loc[idx[set(dataframe.index.get_level_values(0))
                                                            .difference(set(self.df.index.get_level_values(0))), :], :]
-                        print(remaining_data)
                         self.df = pd.concat([self.df, remaining_data])
                 else:
                     self.df = pd.concat([self.df, dataframe], axis=1)
